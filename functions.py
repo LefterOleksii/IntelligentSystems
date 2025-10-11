@@ -155,28 +155,19 @@ def fill_missing_with_mean_or_mode(df: pd.DataFrame) -> pd.DataFrame:
             if pd.api.types.is_numeric_dtype(df_filled[col]):
                 mean_value = df_filled[col].mean()
                 df_filled[col] = df_filled[col].fillna(mean_value)
-                print(f"[+] Колонка '{col}' мала {missing_count} пропусків → заповнено середнім ({mean_value:.2f})")
             else:
-                # Беремо розподіл існуючих значень
                 value_counts = df_filled[col].value_counts(normalize=True, dropna=True)
 
                 if not value_counts.empty:
-                    # Генеруємо рандомні значення з урахуванням ймовірностей
                     random_values = np.random.choice(
                         value_counts.index,
                         size=missing_count,
                         p=value_counts.values
                     )
-
-                    # Заповнюємо пропуски
                     mask = df_filled[col].isna()
                     df_filled.loc[mask, col] = random_values
-                    print(f"[+] Колонка '{col}' мала {missing_count} пропусків → заповнено рандомно за розподілом")
                 else:
                     df_filled[col] = df_filled[col].fillna('Unknown')
-                    print(f"[+] Колонка '{col}' мала {missing_count} пропусків → заповнено 'Unknown'")
-        else:
-            print(f"[=] Колонка '{col}' повністю заповнена")
     return df_filled
 
 

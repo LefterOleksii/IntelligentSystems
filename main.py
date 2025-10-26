@@ -4,30 +4,21 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import LabelEncoder
-from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor, plot_tree
-from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.neighbors import KNeighborsClassifier
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, classification_report, mean_squared_error, r2_score, precision_score, \
+from sklearn.metrics import accuracy_score, classification_report, precision_score, \
     recall_score, f1_score
 from sklearn.metrics import confusion_matrix
-from sklearn.preprocessing import LabelEncoder
+
 
 from functions import *
 
 dataframe_path = "airports.csv"
 airports_dataframe = pd.read_csv(dataframe_path)
 
-# print(airports_dataframe.isnull().sum())
-# print(airports_dataframe.duplicated().sum())
-# print(airports_dataframe.info())
-# print(airports_dataframe.describe())
-
 cols_to_drop = ['gps_code', 'iata_code', 'local_code', 'home_link', 'wikipedia_link', 'keywords']
 airports_dataframe = airports_dataframe.drop(columns=cols_to_drop)
-
-# print(airports_dataframe.info())
-# print(airports_dataframe.describe())
-
 numeric_cols = ['latitude_deg', 'longitude_deg', 'elevation_ft']
 categorical_cols = ['type', 'iso_country', 'scheduled_service', 'municipality', 'iso_region', "continent"]
 
@@ -52,28 +43,16 @@ labels_ukr = {
 if __name__ == "__main__":
     # Виправляє значення датафрейму
     airports_dataframe["continent"] = airports_dataframe["continent"].fillna("NA")
-
-    # airports_dataframe = fill_missing_with_mean_or_mode(airports_dataframe)
     airports_dataframe = drop_rows_with_missing(airports_dataframe)
 
-
-    # ДРУГИЙ ПУНКТ
-    # 1. Готуємо дані - БЕРЕМО ТІЛЬКИ ТОП-5 ТИПІВ
+    # Побудова моделі
     top_types = airports_dataframe['type'].value_counts().index
     df_filtered = airports_dataframe[airports_dataframe['type'].isin(top_types)].copy()
-
     X = df_filtered[['latitude_deg', 'longitude_deg', 'elevation_ft']]
     y = df_filtered['type']
-
-    # 2. Ділимо на тренувальну та тестову
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-
-    # 3. Створюємо модель
     model = DecisionTreeClassifier(max_depth=4)
-
-    # 4. Навчаємо
     model.fit(X_train, y_train)
-
 
     # Візуалізація дерева рішень
     plt.figure(figsize=(55, 12))

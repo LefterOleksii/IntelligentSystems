@@ -51,11 +51,11 @@ if __name__ == "__main__":
     X = df_filtered[['latitude_deg', 'longitude_deg', 'elevation_ft']]
     y = df_filtered['type']
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3)
-    model = DecisionTreeClassifier(max_depth=4)
+    model = DecisionTreeClassifier(max_depth=3)
     model.fit(X_train, y_train)
 
     # Візуалізація дерева рішень
-    plt.figure(figsize=(55, 12))
+    plt.figure(figsize=(35, 12))
     plot_tree(model,
               feature_names=['latitude_deg', 'longitude_deg', 'elevation_ft'],
               class_names=model.classes_,
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
                 xticklabels=model.classes_,
                 yticklabels=model.classes_)
-    plt.title('Матриця помилок Decision Tree', fontsize=14)
+    plt.title('Матриця помилок дерева рішень', fontsize=14)
     plt.xlabel('Передбачений клас')
     plt.ylabel('Справжній клас')
     plt.tight_layout()

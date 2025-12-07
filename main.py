@@ -88,7 +88,7 @@ model_cls = Sequential([
 
 model_cls.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-history_cls = model_cls.fit(X_train_c, y_train_c, epochs=30, batch_size=32, validation_split=0.2, verbose=1)
+history_cls = model_cls.fit(X_train_c, y_train_c, epochs=60, batch_size=32, validation_split=0.2, verbose=1)
 
 # Графіки для класифікації
 plt.figure(figsize=(12, 5))

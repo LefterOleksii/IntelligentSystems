@@ -1,113 +1,144 @@
-import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Input
-from tensorflow.keras.utils import plot_model, to_categorical
+import seaborn as sns
+import tensorflow as tf
+from keras import optimizers
+from tensorflow.keras import layers, models
+from tensorflow.keras.datasets import cifar10
+from tensorflow.keras.utils import to_categorical, plot_model
+from sklearn.metrics import classification_report, confusion_matrix
 
-# Завантаження та обробка даних
-df = pd.read_csv("airports.csv")
 
-cols_to_drop = ['gps_code', 'iata_code', 'local_code', 'home_link', 'wikipedia_link', 'keywords']
-df = df.drop(columns=cols_to_drop)
+(x_train_full, y_train_full), (x_test_full, y_test_full) = cifar10.load_data()
+target_classes = [0, 2, 4]
+class_names_str = ['Airplane', 'Bird', 'Deer']
 
-df["continent"] = df["continent"].fillna("NA")
-df = df.dropna()
 
-# --- 1. ЗАДАЧА РЕГРЕСІЇ ---
-print("--- РЕГРЕСІЯ ---")
+def filter_data(x, y, classes):
+    mask = np.isin(y, classes).flatten()
+    x_filtered = x[mask]
+    y_filtered = y[mask]
+    y_new = np.zeros_like(y_filtered)
+    for i, original_label in enumerate(classes):
+        y_new[y_filtered == original_label] = i
+    return x_filtered, y_new
 
-X_reg = df[['latitude_deg', 'longitude_deg']].values
-y_reg = df['elevation_ft'].values
 
-X_train, X_test, y_train, y_test = train_test_split(X_reg, y_reg, test_size=0.2, random_state=42)
+x_train, y_train = filter_data(x_train_full, y_train_full, target_classes)
+x_test, y_test = filter_data(x_test_full, y_test_full, target_classes)
 
-scaler = StandardScaler()
-X_train = scaler.fit_transform(X_train)
-X_test = scaler.transform(X_test)
+x_train = x_train.astype('float32') / 255.0
+x_test = x_test.astype('float32') / 255.0
 
-model_reg = Sequential([
-    Input(shape=(2,)),
-    Dense(64, activation='relu'),
-    Dense(32, activation='relu'),
-    Dense(1, activation='linear')
+num_classes = len(target_classes)
+y_train = to_categorical(y_train, num_classes)
+y_test = to_categorical(y_test, num_classes)
+
+print(f"Тренувальна вибірка: {x_train.shape}")
+print(f"Тестова вибірка: {x_test.shape}")
+
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), padding='same', input_shape=(32, 32, 3)),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(32, (3, 3), padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Dropout(0.2),
+
+    layers.Conv2D(64, (3, 3), padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(64, (3, 3), padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Dropout(0.3),
+
+    layers.Conv2D(128, (3, 3), padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Conv2D(128, (3, 3), padding='same'),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Dropout(0.4),
+
+    layers.GlobalAveragePooling2D(),
+    layers.Dense(128),
+    layers.BatchNormalization(),
+    layers.Activation('relu'),
+    layers.Dropout(0.5),
+    layers.Dense(num_classes, activation='softmax')
 ])
 
-model_reg.compile(optimizer='adam', loss='mse', metrics=['mae'])
+optimizer = optimizers.Adam(learning_rate=0.001)
 
-history_reg = model_reg.fit(X_train, y_train, epochs=20, batch_size=32, validation_split=0.2, verbose=1)
+model.compile(optimizer=optimizer,
+              loss='categorical_crossentropy',
+              metrics=['accuracy'])
 
-# Графіки для регресії
-plt.figure(figsize=(12, 5))
+model.summary()
+
+try:
+    plot_model(model, to_file='model_structure.png', show_shapes=True)
+except:
+    print("Помилка генерації структури моделі")
+
+
+datagen = tf.keras.preprocessing.image.ImageDataGenerator(
+    rotation_range=15,
+    width_shift_range=0.1,
+    height_shift_range=0.1,
+    horizontal_flip=True
+)
+datagen.fit(x_train)
+
+history = model.fit(datagen.flow(x_train, y_train, batch_size=64),
+                    epochs=100,
+                    validation_data=(x_test, y_test),
+                    verbose=1)
+
+plt.figure(figsize=(12, 4))
+
 
 plt.subplot(1, 2, 1)
-plt.plot(history_reg.history['loss'], label='Train Loss')
-plt.plot(history_reg.history['val_loss'], label='Val Loss')
-plt.title('Регресія: Loss')
+plt.plot(history.history['accuracy'], label='Навчання (Train)')
+plt.plot(history.history['val_accuracy'], label='Тест (Val)')
+plt.title('Точність моделі')
+plt.xlabel('Епоха')
+plt.ylabel('Точність')
 plt.legend()
 plt.grid(True)
 
 plt.subplot(1, 2, 2)
-plt.plot(history_reg.history['mae'], label='Train MAE')
-plt.plot(history_reg.history['val_mae'], label='Val MAE')
-plt.title('Регресія: MAE')
+plt.plot(history.history['loss'], label='Навчання (Train)')
+plt.plot(history.history['val_loss'], label='Тест (Val)')
+plt.title('Втрати (Loss)')
+plt.xlabel('Епоха')
+plt.ylabel('Втрати')
 plt.legend()
 plt.grid(True)
 plt.show()
 
-# Scatter plot передбачень
-y_pred = model_reg.predict(X_test).flatten()
-plt.scatter(y_test, y_pred, alpha=0.3)
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--')
-plt.xlabel('Реальна висота')
-plt.ylabel('Передбачена')
-plt.title('Реальність vs Прогноз')
-plt.show()
 
-# --- 2. ЗАДАЧА КЛАСИФІКАЦІЇ ---
-print("\n--- КЛАСИФІКАЦІЯ ---")
+loss, accuracy = model.evaluate(x_test, y_test, verbose=0)
+print(f"\nФінальна точність: {accuracy * 100:.2f}%")
 
-X_cls = df[['latitude_deg', 'longitude_deg', 'elevation_ft']].values
-encoder = LabelEncoder()
-y_encoded = encoder.fit_transform(df['type'])
-y_categorical = to_categorical(y_encoded)
+y_pred = model.predict(x_test)
+y_pred_classes = np.argmax(y_pred, axis=1)
+y_true = np.argmax(y_test, axis=1)
 
-X_train_c, X_test_c, y_train_c, y_test_c = train_test_split(X_cls, y_categorical, test_size=0.2, random_state=42)
-
-scaler_c = StandardScaler()
-X_train_c = scaler_c.fit_transform(X_train_c)
-X_test_c = scaler_c.transform(X_test_c)
-
-model_cls = Sequential([
-    Input(shape=(3,)),
-    Dense(128, activation='relu'),
-    Dense(64, activation='relu'),
-    Dense(y_categorical.shape[1], activation='softmax')
-])
-
-model_cls.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
-
-history_cls = model_cls.fit(X_train_c, y_train_c, epochs=60, batch_size=32, validation_split=0.2, verbose=1)
-
-# Графіки для класифікації
-plt.figure(figsize=(12, 5))
-
-plt.subplot(1, 2, 1)
-plt.plot(history_cls.history['loss'], label='Train Loss')
-plt.plot(history_cls.history['val_loss'], label='Val Loss')
-plt.title('Класифікація: Loss')
-plt.legend()
-plt.grid(True)
-
-plt.subplot(1, 2, 2)
-plt.plot(history_cls.history['accuracy'], label='Train Accuracy')
-plt.plot(history_cls.history['val_accuracy'], label='Val Accuracy')
-plt.title('Класифікація: Accuracy')
-plt.legend()
-plt.grid(True)
-plt.show()
-
-# Збереження структури моделей
-# plot_model(model_reg, to_file='model_reg.png', show_shapes=True)
-# plot_model(model_cls, to_file='model_cls.png', show_shapes=True)
+try:
+    print(classification_report(y_true, y_pred_classes, target_names=class_names_str))
+    plt.figure(figsize=(6, 5))
+    cm = confusion_matrix(y_true, y_pred_classes)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=class_names_str, yticklabels=class_names_str)
+    plt.title('Матриця плутанини')
+    plt.ylabel('Справжній клас')
+    plt.xlabel('Передбачений клас')
+    plt.show()
+except NameError:
+    print("Помилка")

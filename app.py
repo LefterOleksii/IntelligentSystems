@@ -9,7 +9,7 @@ import io
 app = Flask(__name__)
 
 
-MODEL_PATH = 'cifar_subset_model'
+MODEL_PATH = 'cifar_subset_model.h'
 model = load_model(MODEL_PATH)
 
 # Класи, на яких навчали модель (порядок важливий!)

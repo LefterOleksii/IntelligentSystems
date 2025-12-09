@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network API</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="/static/script.js" defer></script>
+</head>
+<body>
+
+<div class="container">
+    <h2>Розпізнавання зображень</h2>
+    <p>Завантажте фото для аналізу</p>
+
+    <form id="uploadForm">
+        <label for="imageInput" class="custom-file-upload">
+            📂 Оберіть файл
+        </label>
+        <input type="file" id="imageInput" accept="image/*" required>
+
+        <br>
+        <img id="imagePreview" class="preview" style="display:none;">
+        <br>
+
+        <button type="submit">Розпізнати</button>
+    </form>
+
+    <div id="result"></div>
+</div>
+
+</body>
+</html>

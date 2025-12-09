@@ -9,7 +9,7 @@ import io
 app = Flask(__name__)
 
 
-MODEL_PATH = 'cifar_subset_model.h'
+MODEL_PATH = 'cifar_subset_model.h5'
 model = load_model(MODEL_PATH)
 
 # Класи, на яких навчали модель (порядок важливий!)
@@ -19,7 +19,7 @@ CLASS_NAMES = ['Airplane', 'Bird', 'Deer']
 def prepare_image(img_bytes):
     """
     Функція підготовки зображення:
-    Зміює розмір та нормалізує колір пікселів
+    Змінює розмір та нормалізує колір пікселів
     """
     img = Image.open(io.BytesIO(img_bytes)).convert('RGB')
     img = img.resize((32, 32))

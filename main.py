@@ -142,3 +142,8 @@ try:
     plt.show()
 except NameError:
     print("Помилка")
+
+
+model_filename = 'cifar_subset_model.h5'
+model.save(model_filename)
+print(f"Модель успішно збережено у файл {model_filename}")
